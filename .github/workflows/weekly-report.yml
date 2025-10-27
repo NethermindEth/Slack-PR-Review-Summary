@@ -41,8 +41,8 @@ jobs:
         run: pip install requests
 
       - name: Generate and send PR review report
-        run: |
-          REPO=${{ github.event.inputs.repo || 'NethermindEth/nethermind' }}
-          DAYS=${{ github.event.inputs.days || 7 }}
+        run: |        
+          REPO="${{ github.event.inputs.repo || 'NethermindEth/nethermind' }}"
+          DAYS="${{ github.event.inputs.days || 7 }}"
           echo "Generating report for repo '$REPO' for the last $DAYS days..."
           python generate_pr_report.py "$REPO" "$DAYS"
