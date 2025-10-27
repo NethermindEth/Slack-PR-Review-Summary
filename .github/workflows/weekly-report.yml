@@ -1,13 +1,16 @@
 name: Weekly PR Review Report
 
 on:
-  # 1️⃣ Runs automatically every Monday at 09:00 UTC
+  # Scheduled automatic run
   schedule:
     - cron: "0 9 * * MON"
 
-  # 2️⃣ Allows manual trigger with optional "days" parameter
+  # Manual trigger with inputs
   workflow_dispatch:
     inputs:
+      repo:
+        description: "Repository name to generate report for (e.g., my-repo)"
+        required: true
       days:
         description: "Number of days to look back for reviews"
         required: false
@@ -20,9 +23,13 @@ permissions:
 jobs:
   report:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      ORG_NAME: NethermindEth
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -34,3 +41,8 @@ jobs:
         run: pip install requests
 
       - name: Generate and send PR review report
+        run: |
+          REPO=${{ github.event.inputs.repo }}
+          DAYS=${{ github.event.inputs.days || 7 }}
+          echo "Generating report for repo '$REPO' for the last $DAYS days..."
+          python generate_pr_report.py "$REPO" "$DAYS"
