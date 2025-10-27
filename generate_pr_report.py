@@ -6,15 +6,19 @@ from collections import Counter
 
 # --- Config ---
 GITHUB_TOKEN = os.getenv("GH_TOKEN")
-REPO = os.getenv("REPO") or "org/repo-name"
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"}
 
-# --- Input parameter ---
-# Default = 7 days (if not passed as GitHub Action input)
+# --- Input parameters ---
 try:
-    days = int(sys.argv[1])
-except (IndexError, ValueError):
+    REPO = sys.argv[1]  # e.g., "my-repo"
+except IndexError:
+    print("Error: Repository name is required as first argument")
+    sys.exit(1)
+
+try:
+    days = int(sys.argv[2]) if len(sys.argv) > 2 else 7
+except ValueError:
     days = 7
 
 since = (datetime.utcnow() - timedelta(days=days)).isoformat() + "Z"
@@ -44,6 +48,7 @@ def get_pulls():
         for pr in data:
             if pr["updated_at"] > since:
                 pulls.append(pr)
+
         if len(data) < 50:
             break
         page += 1
@@ -66,12 +71,12 @@ def get_reviews(pulls):
     return counts
 
 
-def format_slack_message(counts, days):
+def format_slack_message(counts, days, repo):
     """Create Slack-friendly message text."""
     if not counts:
-        return f"*No PR reviews found in the last {days} days.*"
+        return f"*No PR reviews found in the last {days} days for `{repo}`.*"
 
-    lines = [f"*PR Reviews in the last {days} days* 📊\n"]
+    lines = [f"*PR Reviews in the last {days} days for `{repo}`* 📊\n"]
     for user, count in counts.most_common():
         lines.append(f"• `{user}`: {count} reviews")
     return "\n".join(lines)
@@ -87,6 +92,6 @@ def post_to_slack(message):
 if __name__ == "__main__":
     pulls = get_pulls()
     counts = get_reviews(pulls)
-    message = format_slack_message(counts, days)
+    message = format_slack_message(counts, days, REPO)
     post_to_slack(message)
     print("✅ Report sent to Slack")
