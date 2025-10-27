@@ -1,0 +1,36 @@
+name: Weekly PR Review Report
+
+on:
+  # 1️⃣ Runs automatically every Monday at 09:00 UTC
+  schedule:
+    - cron: "0 9 * * MON"
+
+  # 2️⃣ Allows manual trigger with optional "days" parameter
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Number of days to look back for reviews"
+        required: false
+        default: "7"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate and send PR review report
