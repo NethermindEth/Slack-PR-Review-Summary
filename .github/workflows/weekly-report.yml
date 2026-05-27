@@ -18,7 +18,7 @@ on:
         default: "7"
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
 
 jobs:
@@ -46,3 +46,6 @@ jobs:
           DAYS="${{ github.event.inputs.days || 7 }}"
           echo "Generating report for repo '$REPO' for the last $DAYS days..."
           python generate_pr_report.py "$REPO" "$DAYS"
+
+      - name: Keepalive
+        uses: gautamkrishnar/keepalive-workflow@v2
