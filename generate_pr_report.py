@@ -49,7 +49,9 @@ def get_pulls():
             if pr["updated_at"] > since:
                 pulls.append(pr)
 
-        if len(data) < 50:
+        # Results are sorted by updated desc, so once a page ends with a PR
+        # older than the cutoff there is nothing newer on later pages.
+        if len(data) < 50 or data[-1]["updated_at"] <= since:
             break
         page += 1
 
@@ -57,17 +59,27 @@ def get_pulls():
 
 
 def get_reviews(pulls):
-    """Count approvals per reviewer."""
+    """Count approvals submitted since the cutoff date, per reviewer."""
     counts = Counter()
     for pr in pulls:
-        r = requests.get(
-            f"https://api.github.com/repos/{REPO}/pulls/{pr['number']}/reviews",
-            headers=HEADERS,
-        )
-        r.raise_for_status()
-        for review in r.json():
-            if review["state"].lower() == "approved":
-                counts[review["user"]["login"]] += 1
+        page = 1
+        while True:
+            r = requests.get(
+                f"https://api.github.com/repos/{REPO}/pulls/{pr['number']}/reviews",
+                headers=HEADERS,
+                params={"per_page": 100, "page": page},
+            )
+            r.raise_for_status()
+            data = r.json()
+            for review in data:
+                if (
+                    review["state"].lower() == "approved"
+                    and (review.get("submitted_at") or "") > since
+                ):
+                    counts[review["user"]["login"]] += 1
+            if len(data) < 100:
+                break
+            page += 1
     return counts
 
 
